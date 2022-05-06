@@ -157,3 +157,84 @@ resource "oci_core_instance" "webserver2" {
     ssh_authorized_keys = var.ssh_public_key
   }
 }
+
+# reservar ip público
+resource "oci_core_public_ip" "tcb_reserved_ip" {
+  compartment_id = var.compartment_ocid
+  lifetime       = "RESERVED"
+
+  lifecycle {
+    ignore_changes = [private_ip_id]
+  }
+}
+
+/* Load Balancer */
+# Adicionar detalhes
+resource "oci_load_balancer" "tcb-lb" {
+  shape          = "10Mbps"
+  compartment_id = var.compartment_ocid
+
+  subnet_ids = [
+    oci_core_subnet.tcb_subnet.id,
+    
+  ]
+
+  display_name = "tcb-lb"
+  reserved_ips {
+    id = oci_core_public_ip.tcb_reserved_ip.id
+  }
+}
+
+# Escolha o BackendSet
+resource "oci_load_balancer_backend_set" "tcb-lb-backset" {
+  name             = "tcb-lb-backset"
+  load_balancer_id = oci_load_balancer.tcb-lb.id
+  policy           = "ROUND_ROBIN"
+
+  health_checker {
+    port                = "80"
+    protocol            = "TCP"
+    response_body_regex = ".*"
+    url_path            = "/"
+  }
+}
+# Criar backend 1
+resource "oci_load_balancer_backend" "tcb-lb-backend1" {
+  load_balancer_id = oci_load_balancer.tcb-lb.id
+  backendset_name  = oci_load_balancer_backend_set.tcb-lb-backset.name
+  ip_address       = oci_core_instance.webserver1.private_ip
+  port             = 80
+  backup           = false
+  drain            = false
+  offline          = false
+  weight           = 1
+}
+# Criar backend 2
+resource "oci_load_balancer_backend" "tcb-lb-backend2" {
+  load_balancer_id = oci_load_balancer.tcb-lb.id
+  backendset_name  = oci_load_balancer_backend_set.tcb-lb-backset.name
+  ip_address       = oci_core_instance.webserver2.private_ip
+  port             = 80
+  backup           = false
+  drain            = false
+  offline          = false
+  weight           = 1
+}
+#Configurar o Listner
+resource "oci_load_balancer_listener" "tcb-lb-listener" {
+  load_balancer_id         = oci_load_balancer.tcb-lb.id
+  name                     = "tcb-lb-listener"
+  default_backend_set_name = oci_load_balancer_backend_set.tcb-lb-backset.name
+  port                     = 80
+  protocol                 = "HTTP"
+  
+
+  connection_configuration {
+    idle_timeout_in_seconds = "2"
+  }
+}
+
+# Mostrar o IP Publico
+output "lb_public_ip" {
+  value = [oci_load_balancer.tcb-lb.ip_address_details]
+}
