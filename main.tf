@@ -10,20 +10,29 @@ variable "fingerprint" {}
 variable "private_key" {}
 variable "ssh_public_key" {}
 
+terraform {
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = "6.11.0"
+    }
+  }
+}
+
 provider "oci" {
   tenancy_ocid = var.tenancy_ocid
-  user_ocid = var.user_ocid
-  fingerprint = var.fingerprint
-  private_key = var.private_key
-  region = var.region
+  user_ocid    = var.user_ocid
+  fingerprint  = var.fingerprint
+  private_key_path  = var.private_key
+  region       = var.region
 }
 
 variable "ad_region_mapping" {
   type = map(string)
 
   default = {
-    us-phoenix-1 = 2
-    us-ashburn-1 = 2
+    us-phoenix-1  = 2
+    us-ashburn-1  = 2
     sa-saopaulo-1 = 1
   }
 }
@@ -34,9 +43,9 @@ variable "images" {
   default = {
     # See https://docs.us-phoenix-1.oraclecloud.com/images/
     # Oracle-provided image "Oracle-Linux-7.9-2020.10.26-0"
-    us-phoenix-1   = "ocid1.image.oc1.phx.aaaaaaaacirjuulpw2vbdiogz3jtcw3cdd3u5iuangemxq5f5ajfox3aplxa"
-    us-ashburn-1   = "ocid1.image.oc1.iad.aaaaaaaabbg2rypwy5pwnzinrutzjbrs3r35vqzwhfjui7yibmydzl7qgn6a"
-    sa-saopaulo-1   = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaaudio63gdicxwujhfok7jdyewf6iwl6sgcaqlyk4fvttg3bw6gbpq"
+    us-phoenix-1  = "ocid1.image.oc1.phx.aaaaaaaacirjuulpw2vbdiogz3jtcw3cdd3u5iuangemxq5f5ajfox3aplxa"
+    us-ashburn-1  = "ocid1.image.oc1.iad.aaaaaaaabbg2rypwy5pwnzinrutzjbrs3r35vqzwhfjui7yibmydzl7qgn6a"
+    sa-saopaulo-1 = "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaaudio63gdicxwujhfok7jdyewf6iwl6sgcaqlyk4fvttg3bw6gbpq"
   }
 }
 
@@ -176,7 +185,7 @@ resource "oci_load_balancer" "tcb-lb" {
 
   subnet_ids = [
     oci_core_subnet.tcb_subnet.id,
-    
+
   ]
 
   display_name = "tcb-lb"
@@ -227,7 +236,7 @@ resource "oci_load_balancer_listener" "tcb-lb-listener" {
   default_backend_set_name = oci_load_balancer_backend_set.tcb-lb-backset.name
   port                     = 80
   protocol                 = "HTTP"
-  
+
 
   connection_configuration {
     idle_timeout_in_seconds = "2"
